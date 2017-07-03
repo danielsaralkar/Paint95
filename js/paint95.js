@@ -130,7 +130,7 @@ Paint95.start = function(){
     var sizeBoxWrapper = document.createElement("div");
     sizeBoxWrapper.style.border = "1px solid black";
     sizeBoxWrapper.style.height = "100px";
-    //sizeBoxWrapper.style.visibility = "hidden";
+    sizeBoxWrapper.id = "sizeboxmain";
     var sizeBox = document.createElement("div");
     leftWrapper.appendChild(sizeBoxWrapper).appendChild(sizeBox);
     var sizes = ['size1','size2','size3','size4'];
@@ -217,11 +217,13 @@ Paint95.start = function(){
     }
 }
 
-
+// Adding all events to the buttons
 Paint95.addEvents = function(){
     document.getElementById("maincanvas").addEventListener("mousemove", Paint95.checkCoords);
     document.getElementById("maincanvas").addEventListener("mouseup", Paint95.drawCircle);
-    //document.getElementById("maincanvas").addEventListener("mousedown", Paint95.checkCoords);
+    document.getElementById("maincanvas").addEventListener("mouseup", Paint95.drawRect);
+    document.getElementById("maincanvas").addEventListener("mouseup", Paint95.drawRectRound);
+    document.getElementById("maincanvas").addEventListener("click", Paint95.drawText);
     var colors = document.getElementsByClassName("color");
     for(var i=0;i<colors.length;i++){
         colors[i].addEventListener("click", Paint95.setColor);
@@ -236,16 +238,19 @@ Paint95.addEvents = function(){
     for(var i=0;i<sizeArray.length;i++){
         sizeArray[i].addEventListener("click", Paint95.setSize);
     }
+    document.getElementById("save").addEventListener("click", Paint95.save);
+    document.getElementById("load").addEventListener("click", Paint95.load);
+    document.getElementById("clear").addEventListener("click", Paint95.clear);
 }
-//==================================================================================================================
 
+//Check coordinates of click
 Paint95.checkCoords = function(event) {
     
     if (event.buttons == 1) {
         var off = Paint95.canvas.getBoundingClientRect();
-        var x = event.pageX - off.left;
-        var y = event.pageY - off.top;
-        if(Paint95.startX == 0 && Paint95.selectedShape == "circle"){
+        var x = event.clientX - off.left;
+        var y = event.clientY - off.top;
+        if(Paint95.startX == 0 && (Paint95.selectedShape == "circle" || Paint95.selectedShape == "rectangle" || Paint95.selectedShape == "rectangleround")){
             Paint95.startX = x;
             Paint95.startY = y;
             console.log(Paint95.startX);
@@ -255,6 +260,7 @@ Paint95.checkCoords = function(event) {
     }
 }
 
+//Draw a line or erase
 Paint95.draw = function(x,y,h,w) {
     if (h == 0) h = Paint95.selectedSize;
     if (w == 0) w = Paint95.selectedSize;
@@ -266,32 +272,98 @@ Paint95.draw = function(x,y,h,w) {
     pts.fillRect(x, y, h, w);
 }
 
-Paint95.drawCircle = function(x,y){
+//To draw a circle
+Paint95.drawCircle = function(){
     if(Paint95.startX != 0 && Paint95.selectedShape == "circle"){
-        console.log("============================");
-        var pts = Paint95.canvas.getContext("2d");
-        pts.beginPath();
+        var off = Paint95.canvas.getBoundingClientRect();
+        var x = event.clientX - off.left;
+        var y = event.clientY - off.top;        
         var num1 = Paint95.startX - x;
         var num2 = Paint95.startY - y;
-        console.log(num1 , num2);
         var radius = parseInt(Math.sqrt((num1 * num1)+(num2 * num2)));
-        console.log(radius);
+        var pts = Paint95.canvas.getContext("2d");
+        pts.beginPath();
         pts.arc(Paint95.startX,Paint95.startY,radius,0,2*Math.PI);
+        pts.strokeStyle = Paint95.selectedColor;
         pts.stroke();
         Paint95.startX = 0;
         Paint95.startY = 0;
     }
 }
 
-Paint95.drawRect = function(x,y,h,w) {
-
+//To draw a rectangle
+Paint95.drawRect = function() {
+    if(Paint95.startX != 0 && Paint95.selectedShape == "rectangle"){
+        var off = Paint95.canvas.getBoundingClientRect();
+        var x = event.clientX - off.left;
+        var y = event.clientY - off.top;        
+        var height = Math.abs(Paint95.startX - x);
+        var width = Math.abs(Paint95.startY - y);
+        console.log(width, height);
+        var pts = Paint95.canvas.getContext("2d");
+        pts.beginPath();
+        pts.moveTo(Paint95.startX, Paint95.startY);
+        pts.lineTo(Paint95.startX, y);
+        pts.lineTo(x, y);
+        pts.lineTo(x, Paint95.startY);
+        pts.lineTo(Paint95.startX, Paint95.startY);
+        pts.strokeStyle = Paint95.selectedColor;
+        pts.stroke();
+        Paint95.startX = 0;
+        Paint95.startY = 0;
+    }
 }
 
+//To draw a rectangle with round edges
+Paint95.drawRectRound = function() {
+    if(Paint95.startX != 0 && Paint95.selectedShape == "rectangleround"){
+        var off = Paint95.canvas.getBoundingClientRect();
+        var x = event.clientX - off.left;
+        var y = event.clientY - off.top;        
+        var height = Math.abs(Paint95.startX - x);
+        var width = Math.abs(Paint95.startY - y);
+        console.log(width, height);
+        var pts = Paint95.canvas.getContext("2d");
+        pts.beginPath();
+        pts.beginPath();
+        pts.moveTo(Paint95.startX + 20, Paint95.startY);
+        pts.lineTo(x - 20, Paint95.startY);
+        pts.quadraticCurveTo(x, Paint95.startY, x, Paint95.startY + 20);
+        pts.lineTo(x, y-20);
+        pts.quadraticCurveTo(x , y , x-20, y);
+        pts.lineTo(Paint95.startX + 20, y);
+        pts.quadraticCurveTo(Paint95.startX , y , Paint95.startX, y-20);
+        pts.lineTo(Paint95.startX, Paint95.startY + 20);
+        pts.quadraticCurveTo(Paint95.startX, Paint95.startY, Paint95.startX + 20, Paint95.startY);
+        pts.strokeStyle = Paint95.selectedColor;
+        pts.stroke();
+        Paint95.startX = 0;
+        Paint95.startY = 0;
+    }
+}
+
+//Insert text in the clicked location on canvas
+Paint95.drawText = function(){
+    if(Paint95.selectedShape == "textinput"){
+        var text = prompt("Enter text you want to enter.");
+        var off = Paint95.canvas.getBoundingClientRect();
+        var x = event.clientX - off.left;
+        var y = event.clientY - off.top;
+        var pts = Paint95.canvas.getContext("2d");
+        pts.font = "30px Verdana";
+        pts.strokeStyle = Paint95.selectedColor;
+        pts.strokeText(text, x, y);
+    }
+}
+
+// Modify the canvas size
 Paint95.canvasSize = function(){
     var height = document.getElementById('cvHeight').value;
     var width = document.getElementById('cvWidth').value;
     height = parseInt(height);
     width = parseInt(width);
+    var context = Paint95.canvas.toDataURL();
+    localStorage.tempImage = context;
     if (height>=100){
         Paint95.canvas.height = height;
     }
@@ -306,7 +378,12 @@ Paint95.canvasSize = function(){
         Paint95.canvas.width = 500;
         document.getElementById('cvWidth').value = "500";
     }
-
+    var context = Paint95.canvas.getContext("2d");
+    var img=new Image();
+    img.onload=function(){
+        context.drawImage(img,0,0);
+    }
+    img.src=localStorage.getItem("tempImage");
 }
 
 Paint95.setColor = function(){
@@ -324,7 +401,12 @@ Paint95.setShape = function(){
         tools[i].style.border = "2px solid red";
     }
     this.style.border = "5px solid red";
+    //event.target.style.border = "5px solid red";
     Paint95.selectedShape = this.id;
+    if(this.id == "pencil" || this.id == "erase")
+        document.getElementById("sizeboxmain").style.visibility = "visible";
+    else
+        document.getElementById("sizeboxmain").style.visibility = "hidden";
 }
 
 Paint95.setSize = function(){
@@ -347,6 +429,30 @@ Paint95.setSize = function(){
     }
 }
 
+Paint95.clear = function(){
+    var context = Paint95.canvas.getContext("2d");
+    console.log(context);
+    var height = document.getElementById('cvHeight').value;
+    var width = document.getElementById('cvWidth').value;
+    height = parseInt(height);
+    width = parseInt(width);
+    context.clearRect(0, 0, height, width);
+}
+
+Paint95.save = function(){
+    var context = Paint95.canvas.toDataURL();
+    localStorage.canvasImage = context;
+}
+
+Paint95.load = function(){
+    var context = Paint95.canvas.getContext("2d");
+    var img=new Image();
+    img.onload=function(){
+        context.drawImage(img,0,0);
+    }
+    img.src=localStorage.getItem("canvasImage"); 
+}
+
 Paint95.start();
 Paint95.addEvents();
 Paint95.selectedColor = "black";
@@ -359,6 +465,5 @@ Paint95.startX = 0;
 Paint95.startY = 0;
 Paint95.endX = 0;
 Paint95.endY = 0;
-
 Paint95.canvas = document.getElementById("maincanvas");
 Paint95.canvasSize();
